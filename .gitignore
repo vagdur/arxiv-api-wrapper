@@ -11,6 +11,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Documentation
+docs/
+
 # Testing
 coverage/
 .nyc_output/

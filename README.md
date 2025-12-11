@@ -148,6 +148,32 @@ const result = await getArxivEntries({
 });
 ```
 
+## Documentation
+
+### Generating API Documentation
+
+To generate browsable API documentation from the source code:
+
+```bash
+npm run docs:generate
+```
+
+This will create HTML documentation in the `docs/` directory. You can then view it locally:
+
+```bash
+npm run docs:serve
+```
+
+The generated documentation includes:
+- Complete API reference for all exported functions and types
+- Detailed parameter descriptions and examples
+- Type information and relationships
+- Search functionality
+
+### IDE IntelliSense
+
+All exported functions and types include JSDoc comments for enhanced IDE IntelliSense support. Hover over any exported symbol in your IDE to see inline documentation.
+
 ## TypeScript Types
 
 All types are exported from the package:

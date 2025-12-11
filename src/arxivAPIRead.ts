@@ -45,6 +45,40 @@ function joinAnd(parts: string[]): string {
   return parts.filter(Boolean).join('+AND+');
 }
 
+/**
+ * Builds an arXiv search query string from search filters.
+ * 
+ * This function converts the structured `ArxivSearchFilters` object into
+ * a query string compatible with the arXiv API search syntax. Multiple terms
+ * in the same field are combined with AND, and multiple fields are combined
+ * with AND. OR groups and negation (ANDNOT) are also supported.
+ * 
+ * @param filters - Search filters to convert to query string
+ * @returns URL-encoded query string ready for arXiv API
+ * 
+ * @example
+ * ```typescript
+ * const query = buildSearchQuery({
+ *   title: ['machine learning'],
+ *   author: ['Geoffrey Hinton'],
+ * });
+ * // Returns: "ti:\"machine learning\"+AND+au:\"Geoffrey Hinton\""
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Complex query with OR groups
+ * const query = buildSearchQuery({
+ *   or: [
+ *     { title: ['quantum'] },
+ *     { abstract: ['quantum'] },
+ *   ],
+ *   category: ['quant-ph'],
+ * });
+ * ```
+ * 
+ * @see {@link ArxivSearchFilters} for filter options
+ */
 export function buildSearchQuery(filters: ArxivSearchFilters): string {
   const parts: string[] = [];
   const phraseExact = filters.phraseExact;
@@ -110,6 +144,63 @@ function buildUrl(opts: ArxivQueryOptions): string {
   return `${ARXIV_BASE_URL}?${qs}`;
 }
 
+/**
+ * Queries the arXiv API and returns matching paper entries.
+ * 
+ * This is the main function for interacting with the arXiv API. It supports
+ * searching by various criteria, fetching specific papers by ID, pagination,
+ * sorting, rate limiting, and automatic retries with exponential backoff.
+ * 
+ * @param options - Query options including search filters, pagination, and request configuration
+ * @returns Promise resolving to query results with feed metadata and paper entries
+ * 
+ * @throws {Error} If the API request fails after all retries
+ * @throws {Error} If the API returns a non-2xx status code
+ * @throws {Error} If the API returns an empty response
+ * 
+ * @example
+ * ```typescript
+ * // Simple search
+ * const result = await getArxivEntries({
+ *   search: {
+ *     title: ['quantum computing'],
+ *     author: ['John Doe'],
+ *   },
+ *   maxResults: 10,
+ * });
+ * 
+ * console.log(`Found ${result.feed.totalResults} papers`);
+ * result.entries.forEach(entry => {
+ *   console.log(`${entry.arxivId}: ${entry.title}`);
+ * });
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Fetch specific papers by ID
+ * const result = await getArxivEntries({
+ *   idList: ['2101.01234', '2101.05678'],
+ * });
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // With rate limiting and custom timeout
+ * const result = await getArxivEntries({
+ *   search: { title: ['neural networks'] },
+ *   rateLimit: {
+ *     tokensPerInterval: 1,
+ *     intervalMs: 3000, // 1 request per 3 seconds
+ *   },
+ *   timeoutMs: 15000,
+ *   retries: 5,
+ * });
+ * ```
+ * 
+ * @see {@link ArxivQueryOptions} for all available options
+ * @see {@link ArxivQueryResult} for the return type structure
+ * @see {@link ArxivSearchFilters} for search filter options
+ */
 export async function getArxivEntries(options: ArxivQueryOptions): Promise<ArxivQueryResult> {
   const timeoutMs = options.timeoutMs ?? 10000;
   const retries = options.retries ?? 3;
