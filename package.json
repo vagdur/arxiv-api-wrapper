@@ -1,0 +1,31 @@
+{
+  "name": "arxiv-api-wrapper",
+  "version": "1.0.0",
+  "description": "Provides functions wrapping the arXiv API",
+  "keywords": [
+    "arxiv"
+  ],
+  "homepage": "https://github.com/vagdur/arxiv-api-wrapper#readme",
+  "bugs": {
+    "url": "https://github.com/vagdur/arxiv-api-wrapper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vagdur/arxiv-api-wrapper.git"
+  },
+  "license": "ISC",
+  "author": "Vilhelm Agdur",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run --config tests/vitest.config.mts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.3.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
