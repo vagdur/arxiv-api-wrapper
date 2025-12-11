@@ -1,6 +1,6 @@
 {
   "name": "arxiv-api-wrapper",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Provides functions wrapping the arXiv API",
   "keywords": [
     "arxiv"

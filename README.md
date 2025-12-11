@@ -11,8 +11,9 @@ npm install arxiv-api-wrapper
 ## Quick Start
 
 ```typescript
-import { getArxivEntries } from 'arxiv-api-wrapper';
+import { getArxivEntries, getArxivEntriesById } from 'arxiv-api-wrapper';
 
+// Search for papers
 const result = await getArxivEntries({
   search: {
     title: ['quantum computing'],
@@ -27,6 +28,9 @@ console.log(`Found ${result.feed.totalResults} papers`);
 result.entries.forEach(entry => {
   console.log(`${entry.arxivId}: ${entry.title}`);
 });
+
+// Or fetch specific papers by ID
+const papers = await getArxivEntriesById(['2101.01234', '2101.05678']);
 ```
 
 ## Features
@@ -42,9 +46,23 @@ result.entries.forEach(entry => {
 
 For complete API documentation with detailed type information and examples, see the [generated API documentation](https://vagdur.github.io/arxiv-api-wrapper/).
 
+### `getArxivEntriesById(ids: string[], options?): Promise<ArxivQueryResult>`
+
+Simpler function to fetch arXiv papers by their IDs using the id_list API mode.
+
+**Parameters:**
+- `ids: string[]` - Array of arXiv paper IDs (e.g., `['2101.01234', '2101.05678']`)
+- `options?: object` - Optional request configuration
+  - `rateLimit?: { tokensPerInterval: number, intervalMs: number }` - Rate limit configuration
+  - `retries?: number` - Number of retry attempts (default: 3)
+  - `timeoutMs?: number` - Request timeout in milliseconds (default: 10000)
+  - `userAgent?: string` - Custom User-Agent header
+
+**Returns:** Same as `getArxivEntries` - see return type below.
+
 ### `getArxivEntries(options: ArxivQueryOptions): Promise<ArxivQueryResult>`
 
-Main function to query the arXiv API.
+Main function to query the arXiv API with search filters or ID lists.
 
 **Options:**
 - `idList?: string[]` - List of arXiv IDs to fetch (e.g., `['2101.01234', '2101.05678']`)
@@ -113,6 +131,14 @@ const result = await getArxivEntries({
 
 ### Fetch specific papers by ID
 
+Using the simpler `getArxivEntriesById` function:
+
+```typescript
+const result = await getArxivEntriesById(['2101.01234', '2101.05678']);
+```
+
+Or using `getArxivEntries`:
+
 ```typescript
 const result = await getArxivEntries({
   idList: ['2101.01234', '2101.05678'],
@@ -138,7 +164,22 @@ const result = await getArxivEntries({
 });
 ```
 
-### With rate limiting
+### Fetch papers by ID with rate limiting
+
+```typescript
+const result = await getArxivEntriesById(
+  ['2101.01234', '2101.05678'],
+  {
+    rateLimit: {
+      tokensPerInterval: 1,
+      intervalMs: 3000, // 1 request per 3 seconds
+    },
+    timeoutMs: 15000,
+  }
+);
+```
+
+### Search with rate limiting
 
 ```typescript
 const result = await getArxivEntries({

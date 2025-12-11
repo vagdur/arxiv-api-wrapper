@@ -1,5 +1,5 @@
 import { describe, it, test, expect } from 'vitest';
-import { getArxivEntries } from '../src/arxivAPIRead';
+import { getArxivEntries, getArxivEntriesById } from '../src/arxivAPIRead';
 
 // Integration tests that make real HTTP calls to arXiv API.
 // These are intentionally conservative in request size and rate.
@@ -94,5 +94,51 @@ describe('arXiv API integration', () => {
     expect(second.entries[0].title.length).toBeGreaterThan(0);
     expect(second.entries[0].links.length).toBeGreaterThanOrEqual(1);
   }, 120000); // Increased to 120 seconds to account for rate limiting, retries, and backoff delays
+
+  test('fetches papers by ID using getArxivEntriesById', async () => {
+    // Use a well-known arXiv paper ID for testing
+    const testIds = ['2101.01234', '2101.05678'];
+    
+    console.log(`Starting API call with getArxivEntriesById for IDs: ${testIds.join(', ')}`);
+    let result;
+    try {
+      result = await getArxivEntriesById(testIds, {
+        timeoutMs: 15000,
+        retries: 2,
+        rateLimit: { tokensPerInterval: 1, intervalMs: 1000 },
+        userAgent: 'arxiv-api-wrapper-tests/1.0',
+      });
+      console.log('API call completed successfully');
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw new Error(`Failed to fetch entries by ID: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    expect(result.feed).toBeTruthy();
+    expect(typeof result.feed.totalResults).toBe('number');
+    expect(Array.isArray(result.entries)).toBe(true);
+    expect(result.entries.length).toBeGreaterThanOrEqual(0);
+
+    // Verify that we got results for at least some of the requested IDs
+    if (result.entries.length > 0) {
+      const returnedIds = result.entries.map(e => e.arxivId.split('v')[0]); // Remove version suffix for comparison
+      const requestedIds = testIds.map(id => id.split('v')[0]);
+      
+      // At least one requested ID should be in the results
+      const hasMatchingId = requestedIds.some(reqId => 
+        returnedIds.some(retId => retId === reqId || retId.startsWith(reqId))
+      );
+      expect(hasMatchingId).toBe(true);
+
+      // Verify entry structure
+      const firstEntry = result.entries[0];
+      expect(firstEntry.arxivId).toBeTruthy();
+      expect(firstEntry.title).toBeTruthy();
+      expect(firstEntry.title.length).toBeGreaterThan(0);
+      expect(Array.isArray(firstEntry.authors)).toBe(true);
+      expect(Array.isArray(firstEntry.links)).toBe(true);
+      expect(firstEntry.links.length).toBeGreaterThanOrEqual(1);
+    }
+  }, 120000);
 });
 

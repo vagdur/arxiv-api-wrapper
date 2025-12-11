@@ -1,4 +1,4 @@
-import { ArxivQueryOptions, ArxivQueryResult, ArxivSearchFilters } from './types';
+import { ArxivQueryOptions, ArxivQueryResult, ArxivSearchFilters, ArxivRateLimitConfig } from './types';
 import { TokenBucketLimiter } from './rateLimiter';
 import { fetchWithRetry } from './http';
 import { parseEntries, parseFeedMeta } from './atom';
@@ -242,5 +242,75 @@ export async function getArxivEntries(options: ArxivQueryOptions): Promise<Arxiv
   }
   
   return { feed, entries };
+}
+
+/**
+ * Fetches arXiv papers by their IDs using the simpler id_list API mode.
+ * 
+ * This is a convenience function for the simpler arXiv API mode where you provide
+ * a comma-delimited list of paper IDs and get back the data for those papers.
+ * It's simpler than using search queries when you already know the paper IDs.
+ * 
+ * @param ids - Array of arXiv paper IDs (e.g., ['2101.01234', '2101.05678']). Maximum 100 IDs allowed.
+ * @param options - Optional request configuration
+ * @param options.rateLimit - Rate limiting configuration to respect arXiv API guidelines
+ * @param options.retries - Number of retry attempts for failed requests (default: 3)
+ * @param options.timeoutMs - Request timeout in milliseconds (default: 10000)
+ * @param options.userAgent - Custom User-Agent header for requests
+ * @returns Promise resolving to query results with feed metadata and paper entries
+ * 
+ * @throws {Error} If more than 100 IDs are provided
+ * @throws {Error} If the API request fails after all retries
+ * @throws {Error} If the API returns a non-2xx status code
+ * @throws {Error} If the API returns an empty response
+ * 
+ * @example
+ * ```typescript
+ * // Fetch papers by ID
+ * const result = await getArxivEntriesById(['2101.01234', '2101.05678']);
+ * 
+ * result.entries.forEach(entry => {
+ *   console.log(`${entry.arxivId}: ${entry.title}`);
+ * });
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // With rate limiting
+ * const result = await getArxivEntriesById(
+ *   ['2101.01234'],
+ *   {
+ *     rateLimit: {
+ *       tokensPerInterval: 1,
+ *       intervalMs: 3000, // 1 request per 3 seconds
+ *     },
+ *     timeoutMs: 15000,
+ *   }
+ * );
+ * ```
+ * 
+ * @see {@link getArxivEntries} for more advanced querying with search filters
+ * @see {@link ArxivQueryResult} for the return type structure
+ */
+export async function getArxivEntriesById(
+  ids: string[],
+  options?: {
+    rateLimit?: ArxivRateLimitConfig;
+    retries?: number;
+    timeoutMs?: number;
+    userAgent?: string;
+  }
+): Promise<ArxivQueryResult> {
+  if (ids.length > 100) {
+    throw new Error(`Maximum of 100 IDs allowed, but ${ids.length} IDs were provided`);
+  }
+  
+  return getArxivEntries({
+    idList: ids,
+    rateLimit: options?.rateLimit,
+    retries: options?.retries,
+    timeoutMs: options?.timeoutMs,
+    userAgent: options?.userAgent,
+  });
 }
 
