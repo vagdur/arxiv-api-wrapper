@@ -66,7 +66,7 @@ Main function to query the arXiv API with search filters or ID lists.
 
 **Options:**
 - `idList?: string[]` - List of arXiv IDs to fetch (e.g., `['2101.01234', '2101.05678']`)
-- `search?: ArxivSearchFilters` - Search filters (ignored if `idList` is provided)
+- `search?: ArxivSearchFilters` - Search filters (when used with `idList`, filters the entries from `idList` to only return those matching the search query)
 - `start?: number` - Pagination offset (0-based)
 - `maxResults?: number` - Maximum number of results (≤ 300)
 - `sortBy?: 'relevance' | 'lastUpdatedDate' | 'submittedDate'` - Sort field

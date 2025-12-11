@@ -125,10 +125,10 @@ export interface ArxivSearchFilters {
  * @see {@link ArxivRateLimitConfig} for rate limiting configuration
  */
 export interface ArxivQueryOptions {
-  /** List of arXiv IDs to fetch directly (e.g., ['2101.01234', '2101.05678']). If provided, search filters are ignored. */
+  /** List of arXiv IDs to fetch directly (e.g., ['2101.01234', '2101.05678']). Can be used together with `search` to filter the results. */
   idList?: string[];
-  /** Search filters to query papers. Ignored if `idList` is provided. */
-  search?: ArxivSearchFilters; // ignored if idList present
+  /** Search filters to query papers. When used with `idList`, filters the entries from `idList` to only return those matching the search query. */
+  search?: ArxivSearchFilters;
   /** Pagination offset (0-based index) */
   start?: number; // 0-based
   /** Maximum number of results to return (≤ 300 per arXiv API guidance) */
