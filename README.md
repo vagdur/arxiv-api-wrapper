@@ -40,6 +40,8 @@ result.entries.forEach(entry => {
 
 ## API Reference
 
+For complete API documentation with detailed type information and examples, see the [generated API documentation](https://vagdur.github.io/arxiv-api-wrapper/).
+
 ### `getArxivEntries(options: ArxivQueryOptions): Promise<ArxivQueryResult>`
 
 Main function to query the arXiv API.
