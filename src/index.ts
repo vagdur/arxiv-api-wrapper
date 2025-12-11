@@ -1,5 +1,5 @@
 // Main entry point for the arXiv API wrapper package
-export { getArxivEntries, buildSearchQuery } from './arxivAPIRead';
+export { getArxivEntries } from './arxivAPIRead';
 export type {
   ArxivQueryOptions,
   ArxivQueryResult,
