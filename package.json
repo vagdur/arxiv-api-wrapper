@@ -21,6 +21,7 @@
   "scripts": {
     "test": "vitest run --config tests/vitest.config.mts",
     "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run test && npm audit",
     "docs:generate": "typedoc",
     "docs:serve": "npx serve docs"
   },
