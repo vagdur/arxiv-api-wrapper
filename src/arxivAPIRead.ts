@@ -1,7 +1,7 @@
-import { ArxivQueryOptions, ArxivQueryResult, ArxivSearchFilters, ArxivRateLimitConfig } from './types';
-import { TokenBucketLimiter } from './rateLimiter';
-import { fetchWithRetry } from './http';
-import { parseEntries, parseFeedMeta } from './atom';
+import { ArxivQueryOptions, ArxivQueryResult, ArxivSearchFilters, ArxivRateLimitConfig } from './types.js';
+import { TokenBucketLimiter } from './rateLimiter.js';
+import { fetchWithRetry } from './http.js';
+import { parseEntries, parseFeedMeta } from './atom.js';
 
 const ARXIV_BASE_URL = 'https://export.arxiv.org/api/query';
 
@@ -98,7 +98,7 @@ export function buildSearchQuery(filters: ArxivSearchFilters): string {
 
   // OR group: each subfilter becomes an AND-joined clause, then ORed as a group
   if (filters.or && filters.or.length > 0) {
-    const orClauses = filters.or.map((sf) => buildSearchQuery({ ...sf, or: undefined, andNot: undefined }));
+    const orClauses = filters.or.map((sf: ArxivSearchFilters) => buildSearchQuery({ ...sf, or: undefined, andNot: undefined }));
     const grouped = groupOr(orClauses);
     if (grouped) parts.push(grouped);
   }

@@ -1,4 +1,4 @@
-import { ArxivEntry, ArxivFeedMeta, ArxivLink } from './types';
+import { ArxivEntry, ArxivFeedMeta, ArxivLink } from './types.js';
 import { XMLParser } from 'fast-xml-parser';
 
 // XML parser configured to keep attributes and drop namespace prefixes

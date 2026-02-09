@@ -1,4 +1,4 @@
-import { ArxivEntry } from '../../../src/types';
+import { ArxivEntry } from '../../../src/types.js';
 
 export const expectedEntries: ArxivEntry[] = [
   {

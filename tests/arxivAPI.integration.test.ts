@@ -1,5 +1,5 @@
 import { describe, it, test, expect } from 'vitest';
-import { getArxivEntries, getArxivEntriesById } from '../src/arxivAPIRead';
+import { getArxivEntries, getArxivEntriesById } from '../src/arxivAPIRead.js';
 
 // Integration tests that make real HTTP calls to arXiv API.
 // These are intentionally conservative in request size and rate.
@@ -58,8 +58,8 @@ describe('arXiv API integration', () => {
     expect(titleLower).toContain('overlapping');
     
     // Check that at least one author is "Vilhelm Agdur"
-    const authorNames = firstEntry.authors.map(a => a.name);
-    const hasVilhelmAgdur = authorNames.some(name => 
+    const authorNames = firstEntry.authors.map((a: { name: string }) => a.name);
+    const hasVilhelmAgdur = authorNames.some((name: string) => 
       name.toLowerCase().includes('vilhelm') && name.toLowerCase().includes('agdur')
     );
     expect(hasVilhelmAgdur).toBe(true);
@@ -121,12 +121,12 @@ describe('arXiv API integration', () => {
 
     // Verify that we got results for at least some of the requested IDs
     if (result.entries.length > 0) {
-      const returnedIds = result.entries.map(e => e.arxivId.split('v')[0]); // Remove version suffix for comparison
-      const requestedIds = testIds.map(id => id.split('v')[0]);
+      const returnedIds = result.entries.map((e: { arxivId: string }) => e.arxivId.split('v')[0]); // Remove version suffix for comparison
+      const requestedIds = testIds.map((id: string) => id.split('v')[0]);
       
       // At least one requested ID should be in the results
-      const hasMatchingId = requestedIds.some(reqId => 
-        returnedIds.some(retId => retId === reqId || retId.startsWith(reqId))
+      const hasMatchingId = requestedIds.some((reqId: string) =>
+        returnedIds.some((retId: string) => retId === reqId || retId.startsWith(reqId))
       );
       expect(hasMatchingId).toBe(true);
 

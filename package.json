@@ -20,6 +20,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "test": "vitest run --config tests/vitest.config.mts",
+    "typecheck": "tsc --noEmit",
     "docs:generate": "typedoc",
     "docs:serve": "npx serve docs"
   },

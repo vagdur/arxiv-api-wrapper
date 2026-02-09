@@ -40,7 +40,7 @@
  */
 
 // Main entry point for the arXiv API wrapper package
-export { getArxivEntries, getArxivEntriesById } from './arxivAPIRead';
+export { getArxivEntries, getArxivEntriesById } from './arxivAPIRead.js';
 export type {
   ArxivQueryOptions,
   ArxivQueryResult,
@@ -53,5 +53,5 @@ export type {
   ArxivSortOrder,
   ArxivRateLimitConfig,
   ArxivDateRange,
-} from './types';
+} from './types.js';
 

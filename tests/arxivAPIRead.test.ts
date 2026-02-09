@@ -1,6 +1,6 @@
 // Basic tests for query building logic using Vitest
 import { describe, it, expect } from 'vitest';
-import { buildSearchQuery } from '../src/arxivAPIRead';
+import { buildSearchQuery } from '../src/arxivAPIRead.js';
 
 describe('buildSearchQuery', () => {
   it('ANDs top-level fields', () => {
