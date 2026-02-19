@@ -1,5 +1,6 @@
 /**
  * Unit tests for OAI-PMH URL builder and XML parser (no network).
+ * Pagination helpers (oaiListRecordsAll, etc.) are covered by integration tests.
  */
 import { describe, it, expect } from 'vitest';
 import { buildOaiUrl, normalizeOaiIdentifier } from '../src/oaiClient.js';

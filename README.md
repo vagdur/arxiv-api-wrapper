@@ -51,6 +51,7 @@ The package also supports the arXiv OAI-PMH endpoint (`https://oaipmh.arxiv.org/
 import {
   oaiIdentify,
   oaiListRecords,
+  oaiListRecordsAsyncIterator,
   oaiGetRecord,
   oaiListSets,
   oaiListIdentifiers,
@@ -78,6 +79,20 @@ if (result.resumptionToken) {
 // Single record by identifier (full or short form)
 const record = await oaiGetRecord('cs/0112017', 'oai_dc');
 ```
+
+For an intermediate option between manual page-by-page pagination and `*All` helpers, use async iterators:
+
+```typescript
+for await (const rec of oaiListRecordsAsyncIterator('oai_dc', {
+  from: '2024-01-01',
+  until: '2024-01-02',
+  maxRecords: 50,
+})) {
+  console.log(rec.header.identifier);
+}
+```
+
+The `oaiListRecordsAll` / `oaiListIdentifiersAll` / `oaiListSetsAll` helpers are convenience wrappers that collect from the corresponding async iterators.
 
 All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). OAI errors (e.g. `idDoesNotExist`, `noRecordsMatch`) are thrown as `OaiError` with a `code` and `messageText`.
 

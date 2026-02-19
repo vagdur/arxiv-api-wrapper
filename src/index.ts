@@ -46,9 +46,15 @@ export {
   oaiIdentify,
   oaiListMetadataFormats,
   oaiListSets,
+  oaiListSetsAsyncIterator,
+  oaiListSetsAll,
   oaiGetRecord,
   oaiListIdentifiers,
+  oaiListIdentifiersAsyncIterator,
+  oaiListIdentifiersAll,
   oaiListRecords,
+  oaiListRecordsAsyncIterator,
+  oaiListRecordsAll,
   normalizeOaiIdentifier,
 } from './oaiClient.js';
 export type {
