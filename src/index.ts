@@ -57,6 +57,11 @@ export {
   oaiListRecordsAll,
   normalizeOaiIdentifier,
 } from './oaiClient.js';
+export {
+  oaiRecordToArxivEntry,
+  oaiRecordsToArxivEntries,
+  oaiListRecordsToArxivQueryResult,
+} from './oaiToArxiv.js';
 export type {
   ArxivQueryOptions,
   ArxivQueryResult,
