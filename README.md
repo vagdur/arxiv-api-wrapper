@@ -41,6 +41,45 @@ const papers = await getArxivEntriesById(['2101.01234', '2101.05678']);
 - **Retry Logic**: Automatic retries with exponential backoff for transient failures
 - **Pagination**: Support for paginated results with configurable page size
 - **Sorting**: Multiple sort options (relevance, submission date, last updated)
+- **OAI-PMH**: Support for the [arXiv Open Archives Initiative](https://info.arxiv.org/help/oa/index.html#open-archives-initiative-oai) interface (Identify, ListSets, GetRecord, ListRecords, ListIdentifiers, ListMetadataFormats)
+
+## OAI-PMH interface
+
+The package also supports the arXiv OAI-PMH endpoint (`https://oaipmh.arxiv.org/oai`), which is useful for metadata harvesting and bulk access. See the [arXiv OAI help](https://info.arxiv.org/help/oa/index.html#open-archives-initiative-oai) and the [OAI-PMH v2.0 protocol](https://www.openarchives.org/OAI/openarchivesprotocol.html) for details.
+
+```typescript
+import {
+  oaiIdentify,
+  oaiListRecords,
+  oaiGetRecord,
+  oaiListSets,
+  oaiListIdentifiers,
+  oaiListMetadataFormats,
+} from 'arxiv-api-wrapper';
+
+// Repository info
+const identify = await oaiIdentify();
+console.log(identify.repositoryName, identify.protocolVersion);
+
+// One page of records (e.g. Dublin Core)
+const result = await oaiListRecords('oai_dc', {
+  from: '2024-01-01',
+  until: '2024-01-31',
+  set: 'math:math:LO',  // optional: restrict to a set
+  rateLimit: { tokensPerInterval: 1, intervalMs: 1000 },
+});
+result.records.forEach((rec) => {
+  console.log(rec.header.identifier, rec.metadata);
+});
+if (result.resumptionToken) {
+  // Fetch next page with result.resumptionToken.value
+}
+
+// Single record by identifier (full or short form)
+const record = await oaiGetRecord('cs/0112017', 'oai_dc');
+```
+
+All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). OAI errors (e.g. `idDoesNotExist`, `noRecordsMatch`) are thrown as `OaiError` with a `code` and `messageText`.
 
 ## API Reference
 
@@ -234,7 +273,21 @@ import type {
   ArxivSortOrder,
   ArxivRateLimitConfig,
   ArxivDateRange,
-} from 'arxiv-api-wrapper';
+  // OAI-PMH types
+  OaiIdentifyResponse,
+  OaiRecord,
+  OaiHeader,
+  OaiSet,
+  OaiMetadataFormat,
+  OaiResumptionToken,
+  OaiListRecordsResult,
+  OaiListIdentifiersResult,
+  OaiListSetsResult,
+  OaiRequestOptions,
+  OaiListOptions,
+  OaiErrorCode,
+  OaiError
+  } from 'arxiv-api-wrapper';
 ```
 
 ## License

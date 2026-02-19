@@ -14,6 +14,7 @@
  * - **Retry Logic**: Automatic retries with exponential backoff for transient failures
  * - **Pagination**: Support for paginated results with configurable page size
  * - **Sorting**: Multiple sort options (relevance, submission date, last updated)
+ * - **OAI-PMH**: Support for the arXiv Open Archives Initiative interface (Identify, ListSets, GetRecord, ListRecords, etc.)
  * 
  * ## Quick Start
  * 
@@ -41,6 +42,15 @@
 
 // Main entry point for the arXiv API wrapper package
 export { getArxivEntries, getArxivEntriesById } from './arxivAPIRead.js';
+export {
+  oaiIdentify,
+  oaiListMetadataFormats,
+  oaiListSets,
+  oaiGetRecord,
+  oaiListIdentifiers,
+  oaiListRecords,
+  normalizeOaiIdentifier,
+} from './oaiClient.js';
 export type {
   ArxivQueryOptions,
   ArxivQueryResult,
@@ -54,4 +64,20 @@ export type {
   ArxivRateLimitConfig,
   ArxivDateRange,
 } from './types.js';
+export type {
+  OaiRequestOptions,
+  OaiIdentifyResponse,
+  OaiMetadataFormat,
+  OaiSet,
+  OaiResumptionToken,
+  OaiHeader,
+  OaiRecord,
+  OaiMetadata,
+  OaiListIdentifiersResult,
+  OaiListRecordsResult,
+  OaiListSetsResult,
+  OaiListOptions,
+  OaiErrorCode,
+} from './oaiTypes.js';
+export { OaiError } from './oaiTypes.js';
 
