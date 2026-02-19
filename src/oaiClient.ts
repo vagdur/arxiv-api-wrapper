@@ -25,6 +25,7 @@ import {
 import type {
   OaiIdentifyResponse,
   OaiMetadataFormat,
+  OaiMetadataPrefix,
   OaiRecord,
   OaiHeader,
   OaiSet,
@@ -44,7 +45,7 @@ type OaiVerb =
 
 interface OaiParams {
   identifier?: string;
-  metadataPrefix?: string;
+  metadataPrefix?: OaiMetadataPrefix;
   from?: string;
   until?: string;
   set?: string;
@@ -57,7 +58,7 @@ export function buildOaiUrl(verb: OaiVerb, params: OaiParams): string {
   searchParams.set('verb', verb);
   if (params.identifier != null && params.identifier !== '')
     searchParams.set('identifier', params.identifier);
-  if (params.metadataPrefix != null && params.metadataPrefix !== '')
+  if (params.metadataPrefix != null)
     searchParams.set('metadataPrefix', params.metadataPrefix);
   if (params.from != null && params.from !== '') searchParams.set('from', params.from);
   if (params.until != null && params.until !== '') searchParams.set('until', params.until);
@@ -178,7 +179,7 @@ export async function oaiListSets(
  */
 export async function oaiGetRecord(
   identifier: string,
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   options?: OaiRequestOptions
 ): Promise<OaiRecord> {
   const normalizedId = normalizeOaiIdentifier(identifier);
@@ -198,7 +199,7 @@ export async function oaiGetRecord(
  * @returns Headers and optional resumptionToken for the next page.
  */
 export async function oaiListIdentifiers(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListOptions
 ): Promise<OaiListIdentifiersResult> {
   const params: OaiParams = { metadataPrefix };
@@ -223,7 +224,7 @@ export async function oaiListIdentifiers(
  * @returns Records and optional resumptionToken for the next page.
  */
 export async function oaiListRecords(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListOptions
 ): Promise<OaiListRecordsResult> {
   const params: OaiParams = { metadataPrefix };
@@ -264,7 +265,7 @@ type OaiListSetsAllOptions = OaiRequestOptions & {
  * @returns Async iterator yielding records one-by-one.
  */
 export async function* oaiListRecordsAsyncIterator(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListRecordsAllOptions
 ): AsyncGenerator<OaiRecord, void, void> {
   let emitted = 0;
@@ -302,7 +303,7 @@ export async function* oaiListRecordsAsyncIterator(
  * @returns Async iterator yielding headers one-by-one.
  */
 export async function* oaiListIdentifiersAsyncIterator(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListIdentifiersAllOptions
 ): AsyncGenerator<OaiHeader, void, void> {
   let emitted = 0;
@@ -370,7 +371,7 @@ export async function* oaiListSetsAsyncIterator(
  * @returns All fetched records as a single array.
  */
 export async function oaiListRecordsAll(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListRecordsAllOptions
 ): Promise<{ records: OaiRecord[] }> {
   const allRecords: OaiRecord[] = [];
@@ -392,7 +393,7 @@ export async function oaiListRecordsAll(
  * @returns All fetched headers as a single array.
  */
 export async function oaiListIdentifiersAll(
-  metadataPrefix: string,
+  metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListIdentifiersAllOptions
 ): Promise<{ headers: OaiHeader[] }> {
   const allHeaders: OaiHeader[] = [];

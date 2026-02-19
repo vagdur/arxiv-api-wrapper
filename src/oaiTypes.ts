@@ -44,7 +44,7 @@ export interface OaiIdentifyResponse {
 
 /** A metadata format from ListMetadataFormats. */
 export interface OaiMetadataFormat {
-  metadataPrefix: string;
+  metadataPrefix: OaiMetadataPrefix;
   schema: string;
   metadataNamespace: string;
 }
@@ -77,8 +77,121 @@ export interface OaiHeader {
   status?: 'deleted';
 }
 
-/** Metadata part of a record (format-dependent: oai_dc, arXiv, arXivRaw). */
-export type OaiMetadata = Record<string, unknown>;
+/** arXiv OAI metadata prefixes supported by the repository. */
+export type OaiMetadataPrefix = 'oai_dc' | 'arXiv' | 'arXivOld' | 'arXivRaw';
+
+type OneOrMany<T> = T | T[];
+
+/** oai_dc metadata (Dublin Core). */
+export interface OaiDcMetadata {
+  dc: {
+    title?: OneOrMany<string>;
+    creator?: OneOrMany<string>;
+    subject?: OneOrMany<string>;
+    description?: OneOrMany<string>;
+    publisher?: OneOrMany<string>;
+    contributor?: OneOrMany<string>;
+    date?: OneOrMany<string>;
+    type?: OneOrMany<string>;
+    format?: OneOrMany<string>;
+    identifier?: OneOrMany<string>;
+    source?: OneOrMany<string>;
+    language?: OneOrMany<string>;
+    relation?: OneOrMany<string>;
+    coverage?: OneOrMany<string>;
+    rights?: OneOrMany<string>;
+  };
+}
+
+/** arXiv author in the arXiv metadata format. */
+export interface OaiArxivAuthor {
+  keyname: string;
+  forenames?: string;
+  suffix?: string;
+  affiliation?: OneOrMany<string>;
+}
+
+/** arXiv metadata (latest-version focused metadata). */
+export interface OaiArxivMetadata {
+  arXiv: {
+    id: string;
+    created?: string;
+    updated?: string;
+    authors?: {
+      author: OneOrMany<OaiArxivAuthor>;
+    };
+    title?: string;
+    'msc-class'?: string;
+    'acm-class'?: string;
+    'report-no'?: string;
+    'journal-ref'?: string;
+    comments?: string;
+    abstract?: string;
+    categories?: string;
+    doi?: string;
+    proxy?: string;
+    license?: string;
+  };
+}
+
+/** arXivOld metadata (legacy arXiv internal format). */
+export interface OaiArxivOldMetadata {
+  arXivOld: {
+    id: string;
+    title?: string;
+    authors?: string;
+    categories?: string;
+    comments?: string;
+    proxy?: string;
+    'report-no'?: string;
+    'msc-class'?: string;
+    'acm-class'?: string;
+    'journal-ref'?: string;
+    doi?: string;
+    abstract?: string;
+    license?: string;
+  };
+}
+
+/** Version entry in arXivRaw metadata. */
+export interface OaiArxivRawVersion {
+  version?: string;
+  date: string;
+  size?: string;
+  source_type?: string;
+}
+
+/** arXivRaw metadata (close to arXiv internal metadata with version history). */
+export interface OaiArxivRawMetadata {
+  arXivRaw: {
+    id: string;
+    submitter: string;
+    version: OneOrMany<OaiArxivRawVersion>;
+    title?: string;
+    authors?: string;
+    categories: string;
+    comments?: string;
+    proxy?: string;
+    'report-no'?: string;
+    'acm-class'?: string;
+    'msc-class'?: string;
+    'journal-ref'?: string;
+    doi?: string;
+    license?: string;
+    abstract?: string;
+  };
+}
+
+/** Mapping from metadataPrefix to metadata payload shape. */
+export interface OaiMetadataByPrefix {
+  oai_dc: OaiDcMetadata;
+  arXiv: OaiArxivMetadata;
+  arXivOld: OaiArxivOldMetadata;
+  arXivRaw: OaiArxivRawMetadata;
+}
+
+/** Metadata part of a record (format-dependent: oai_dc, arXiv, arXivOld, arXivRaw). */
+export type OaiMetadata = OaiMetadataByPrefix[keyof OaiMetadataByPrefix];
 
 /** A single OAI record (header + optional metadata and about). */
 export interface OaiRecord {

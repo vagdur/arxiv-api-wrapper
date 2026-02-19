@@ -6,6 +6,7 @@ import {
   type OaiErrorCode,
   type OaiIdentifyResponse,
   type OaiMetadataFormat,
+  type OaiMetadataPrefix,
   type OaiSet,
   type OaiResumptionToken,
   type OaiHeader,
@@ -33,6 +34,8 @@ const VALID_ERROR_CODES: OaiErrorCode[] = [
   'noRecordsMatch',
   'noSetHierarchy',
 ];
+
+const VALID_METADATA_PREFIXES: OaiMetadataPrefix[] = ['oai_dc', 'arXiv', 'arXivOld', 'arXivRaw'];
 
 function asArray<T>(x: T | T[] | undefined): T[] {
   if (x == null) return [];
@@ -103,7 +106,7 @@ function parseMetadata(el: unknown): OaiMetadata | undefined {
       out[key] = val;
     }
   }
-  return out as OaiMetadata;
+  return out as unknown as OaiMetadata;
 }
 
 function parseRecord(el: unknown): OaiRecord {
@@ -172,8 +175,15 @@ export function parseListMetadataFormats(xml: string): OaiMetadataFormat[] {
   const formats = asArray(arr);
   return formats.map((f: unknown) => {
     const o = (f && typeof f === 'object' ? f : {}) as Record<string, unknown>;
+    const metadataPrefix = str(o.metadataPrefix);
+    if (!VALID_METADATA_PREFIXES.includes(metadataPrefix as OaiMetadataPrefix)) {
+      throw new OaiError(
+        'cannotDisseminateFormat',
+        `Unsupported metadataPrefix in ListMetadataFormats response: ${metadataPrefix}`
+      );
+    }
     return {
-      metadataPrefix: str(o.metadataPrefix),
+      metadataPrefix: metadataPrefix as OaiMetadataPrefix,
       schema: str(o.schema),
       metadataNamespace: str(o.metadataNamespace),
     };
