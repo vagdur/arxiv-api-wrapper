@@ -3,7 +3,12 @@
  * Pagination helpers (oaiListRecordsAll, etc.) are covered by integration tests.
  */
 import { describe, it, expect } from 'vitest';
-import { buildOaiUrl, normalizeOaiIdentifier } from '../src/oaiClient.js';
+import {
+  buildOaiUrl,
+  normalizeOaiIdentifier,
+  oaiListIdentifiers,
+  oaiListRecords,
+} from '../src/oaiClient.js';
 import {
   parseIdentify,
   parseListMetadataFormats,
@@ -49,8 +54,18 @@ describe('buildOaiUrl', () => {
 
   it('encodes resumptionToken', () => {
     const token = 'token/with/slashes?and=chars';
-    const url = buildOaiUrl('ListIdentifiers', { metadataPrefix: 'oai_dc', resumptionToken: token });
+    const url = buildOaiUrl('ListIdentifiers', { resumptionToken: token });
     expect(url).toContain('resumptionToken=' + encodeURIComponent(token));
+  });
+
+  it('throws for resumptionToken combined with other params', () => {
+    expect(() =>
+      buildOaiUrl('ListRecords', {
+        metadataPrefix: 'oai_dc',
+        from: '2024-01-01',
+        resumptionToken: 'next-token',
+      })
+    ).toThrow(OaiError);
   });
 });
 
@@ -244,5 +259,38 @@ describe('OAI error handling', () => {
     } catch (e) {
       expect((e as OaiError).code).toBe('noRecordsMatch');
     }
+  });
+});
+
+describe('resumptionToken validation', () => {
+  it('throws a local OaiError when resumptionToken is combined with from in oaiListRecords', async () => {
+    const invalidOptions = {
+      from: '2024-01-01',
+      resumptionToken: 'resume-token',
+    } as unknown as Parameters<typeof oaiListRecords>[1];
+
+    await expect(
+      oaiListRecords('oai_dc', invalidOptions)
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
+    await expect(oaiListRecords('oai_dc', invalidOptions)).rejects.toThrow(
+      'resumptionToken must be used by itself'
+    );
+  });
+
+  it('throws a local OaiError when resumptionToken is combined with set in oaiListIdentifiers', async () => {
+    const invalidOptions = {
+      set: 'cs:cs:AI',
+      resumptionToken: 'resume-token',
+    } as unknown as Parameters<typeof oaiListIdentifiers>[1];
+
+    await expect(
+      oaiListIdentifiers('oai_dc', invalidOptions)
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
   });
 });

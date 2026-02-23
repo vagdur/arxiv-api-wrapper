@@ -12,6 +12,7 @@ import {
   type OaiListIdentifiersResult,
   type OaiListRecordsResult,
   type OaiListSetsResult,
+  OaiError,
 } from './oaiTypes.js';
 import type { ArxivRateLimitConfig } from './types.js';
 import {
@@ -52,8 +53,39 @@ interface OaiParams {
   resumptionToken?: string;
 }
 
+function hasValue(value: string | undefined): boolean {
+  return value != null && value !== '';
+}
+
+function hasResumptionTokenConflicts(params: OaiParams): boolean {
+  return (
+    hasValue(params.resumptionToken) &&
+    (hasValue(params.identifier) ||
+      hasValue(params.metadataPrefix) ||
+      hasValue(params.from) ||
+      hasValue(params.until) ||
+      hasValue(params.set))
+  );
+}
+
+function hasResumptionTokenListConflicts(options?: OaiListOptions): boolean {
+  if (!options || !hasValue(options.resumptionToken)) return false;
+  return hasValue(options.from) || hasValue(options.until) || hasValue(options.set);
+}
+
+function throwResumptionTokenExclusiveError(context: 'request params' | 'list options'): never {
+  throw new OaiError(
+    'badArgument',
+    `Invalid ${context}: resumptionToken must be used by itself (aside from verb). ` +
+      'Do not include from/until/set/metadataPrefix when resuming pagination.'
+  );
+}
+
 /** Build OAI-PMH request URL (exported for unit tests). */
 export function buildOaiUrl(verb: OaiVerb, params: OaiParams): string {
+  if (hasResumptionTokenConflicts(params)) {
+    throwResumptionTokenExclusiveError('request params');
+  }
   const searchParams = new URLSearchParams();
   searchParams.set('verb', verb);
   if (params.identifier != null && params.identifier !== '')
@@ -202,15 +234,21 @@ export async function oaiListIdentifiers(
   metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListOptions
 ): Promise<OaiListIdentifiersResult> {
-  const params: OaiParams = { metadataPrefix };
-  if (listOptions?.resumptionToken != null && listOptions.resumptionToken !== '') {
-    params.resumptionToken = listOptions.resumptionToken;
+  if (hasResumptionTokenListConflicts(listOptions)) {
+    throwResumptionTokenExclusiveError('list options');
+  }
+  const resumptionToken = listOptions?.resumptionToken;
+  const from = listOptions?.from;
+  const until = listOptions?.until;
+  const set = listOptions?.set;
+  const params: OaiParams = {};
+  if (hasValue(resumptionToken)) {
+    params.resumptionToken = resumptionToken;
   } else {
-    if (listOptions?.from != null && listOptions.from !== '')
-      params.from = listOptions.from;
-    if (listOptions?.until != null && listOptions.until !== '')
-      params.until = listOptions.until;
-    if (listOptions?.set != null && listOptions.set !== '') params.set = listOptions.set;
+    params.metadataPrefix = metadataPrefix;
+    if (hasValue(from)) params.from = from;
+    if (hasValue(until)) params.until = until;
+    if (hasValue(set)) params.set = set;
   }
   const xml = await oaiRequest('ListIdentifiers', params, listOptions);
   return parseListIdentifiers(xml);
@@ -227,25 +265,37 @@ export async function oaiListRecords(
   metadataPrefix: OaiMetadataPrefix,
   listOptions?: OaiListOptions
 ): Promise<OaiListRecordsResult> {
-  const params: OaiParams = { metadataPrefix };
-  if (listOptions?.resumptionToken != null && listOptions.resumptionToken !== '') {
-    params.resumptionToken = listOptions.resumptionToken;
+  if (hasResumptionTokenListConflicts(listOptions)) {
+    throwResumptionTokenExclusiveError('list options');
+  }
+  const resumptionToken = listOptions?.resumptionToken;
+  const from = listOptions?.from;
+  const until = listOptions?.until;
+  const set = listOptions?.set;
+  const params: OaiParams = {};
+  if (hasValue(resumptionToken)) {
+    params.resumptionToken = resumptionToken;
   } else {
-    if (listOptions?.from != null && listOptions.from !== '')
-      params.from = listOptions.from;
-    if (listOptions?.until != null && listOptions.until !== '')
-      params.until = listOptions.until;
-    if (listOptions?.set != null && listOptions.set !== '') params.set = listOptions.set;
+    params.metadataPrefix = metadataPrefix;
+    if (hasValue(from)) params.from = from;
+    if (hasValue(until)) params.until = until;
+    if (hasValue(set)) params.set = set;
   }
   const xml = await oaiRequest('ListRecords', params, listOptions);
   return parseListRecords(xml);
 }
 
-type OaiListRecordsAllOptions = Omit<OaiListOptions, 'resumptionToken'> & {
+type OaiListRecordsAllOptions = OaiRequestOptions & {
+  from?: string;
+  until?: string;
+  set?: string;
   maxRecords?: number;
 };
 
-type OaiListIdentifiersAllOptions = Omit<OaiListOptions, 'resumptionToken'> & {
+type OaiListIdentifiersAllOptions = OaiRequestOptions & {
+  from?: string;
+  until?: string;
+  set?: string;
   maxHeaders?: number;
 };
 
@@ -270,12 +320,12 @@ export async function* oaiListRecordsAsyncIterator(
 ): AsyncGenerator<OaiRecord, void, void> {
   let emitted = 0;
   let resumptionToken: string | undefined;
-  const { maxRecords, ...restOptions } = listOptions ?? {};
+  const { maxRecords, from, until, set, ...requestOptions } = listOptions ?? {};
 
   do {
     const pageOptions: OaiListOptions = resumptionToken
-      ? { ...restOptions, resumptionToken }
-      : restOptions;
+      ? { ...requestOptions, resumptionToken }
+      : { ...requestOptions, ...(from ? { from } : {}), ...(until ? { until } : {}), ...(set ? { set } : {}) };
 
     const page = await oaiListRecords(metadataPrefix, pageOptions);
     const records = page.records ?? [];
@@ -308,12 +358,12 @@ export async function* oaiListIdentifiersAsyncIterator(
 ): AsyncGenerator<OaiHeader, void, void> {
   let emitted = 0;
   let resumptionToken: string | undefined;
-  const { maxHeaders, ...restOptions } = listOptions ?? {};
+  const { maxHeaders, from, until, set, ...requestOptions } = listOptions ?? {};
 
   do {
     const pageOptions: OaiListOptions = resumptionToken
-      ? { ...restOptions, resumptionToken }
-      : restOptions;
+      ? { ...requestOptions, resumptionToken }
+      : { ...requestOptions, ...(from ? { from } : {}), ...(until ? { until } : {}), ...(set ? { set } : {}) };
 
     const page = await oaiListIdentifiers(metadataPrefix, pageOptions);
     const headers = page.headers ?? [];

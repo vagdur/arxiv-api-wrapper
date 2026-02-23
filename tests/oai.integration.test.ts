@@ -13,6 +13,7 @@ import {
   oaiListSetsAsyncIterator,
   oaiListSetsAll,
 } from '../src/oaiClient.js';
+import { OaiError } from '../src/oaiTypes.js';
 
 const OAI_OPTIONS = {
   timeoutMs: 15000,
@@ -67,6 +68,30 @@ describe('OAI-PMH integration', () => {
       expect(result.resumptionToken.value).toBeTruthy();
     }
   }, 30000);
+
+  it('oaiListRecords continuation requests work with resumptionToken-only options', async () => {
+    const firstPage = await oaiListRecords('oai_dc', OAI_OPTIONS);
+    expect(firstPage.resumptionToken?.value).toBeTruthy();
+
+    const secondPage = await oaiListRecords('oai_dc', {
+      ...OAI_OPTIONS,
+      resumptionToken: firstPage.resumptionToken!.value,
+    });
+
+    expect(Array.isArray(secondPage.records)).toBe(true);
+  }, 30000);
+
+  it('throws a local OaiError for resumptionToken combined with selective params', async () => {
+    const invalidOptions = {
+      ...OAI_OPTIONS,
+      from: '2024-01-01',
+      resumptionToken: 'fake-token',
+    } as unknown as Parameters<typeof oaiListRecords>[1];
+
+    await expect(
+      oaiListRecords('oai_dc', invalidOptions)
+    ).rejects.toBeInstanceOf(OaiError);
+  });
 
   it('oaiListRecordsAll returns records across all pages within a small date range', async () => {
     let result;

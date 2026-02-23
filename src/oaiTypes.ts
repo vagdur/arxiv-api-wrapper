@@ -220,17 +220,29 @@ export interface OaiListSetsResult {
   resumptionToken?: OaiResumptionToken;
 }
 
-/** Options for ListIdentifiers and ListRecords. */
-export interface OaiListOptions extends OaiRequestOptions {
+type OaiSelectiveHarvestOptions = {
   /** Lower bound for datestamp-based selective harvesting (UTC). */
   from?: string;
   /** Upper bound for datestamp-based selective harvesting (UTC). */
   until?: string;
   /** Set spec for selective harvesting (e.g. cs:cs:AI, physics:hep-th). */
   set?: string;
+  /** Resumption token must not be provided for an initial selective request. */
+  resumptionToken?: undefined;
+};
+
+type OaiResumptionTokenOnlyOptions = {
   /** Resumption token from a previous incomplete list response. */
-  resumptionToken?: string;
-}
+  resumptionToken: string;
+  /** Selective harvesting parameters are not allowed together with resumptionToken. */
+  from?: never;
+  until?: never;
+  set?: never;
+};
+
+/** Options for ListIdentifiers and ListRecords. */
+export type OaiListOptions = OaiRequestOptions &
+  (OaiSelectiveHarvestOptions | OaiResumptionTokenOnlyOptions);
 
 /** Error thrown when the OAI repository returns an error element. */
 export class OaiError extends Error {
