@@ -345,8 +345,8 @@ type OaiListSetsAllOptions = OaiRequestOptions & {
 /**
  * Iterate records across all pages for a given metadataPrefix and optional selective harvesting options.
  *
- * This helper follows resumption tokens internally and yields records one-by-one until completion or
- * until the optional maxRecords cap is reached.
+ * This helper follows resumption tokens internally and yields records one-by-one until completion.
+ * When maxRecords is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, request options (timeout, retries, userAgent, rateLimit) and maxRecords.
@@ -360,6 +360,7 @@ export async function* oaiListRecordsAsyncIterator(
   let emitted = 0;
   let resumptionToken: string | undefined;
   const { maxRecords, from, until, set, ...requestOptions } = listOptions ?? {};
+  const maxEmitted = maxRecords ?? Number.POSITIVE_INFINITY;
 
   do {
     const pageOptions: OaiListOptions = resumptionToken
@@ -371,7 +372,7 @@ export async function* oaiListRecordsAsyncIterator(
     if (records.length === 0) break;
 
     for (const record of records) {
-      if (maxRecords != null && emitted >= maxRecords) return;
+      if (emitted >= maxEmitted) return;
       yield record;
       emitted += 1;
     }
@@ -383,8 +384,8 @@ export async function* oaiListRecordsAsyncIterator(
 /**
  * Iterate identifiers (headers only) across all pages for a given metadataPrefix and optional selective harvesting options.
  *
- * This helper follows resumption tokens internally and yields headers one-by-one until completion or
- * until the optional maxHeaders cap is reached.
+ * This helper follows resumption tokens internally and yields headers one-by-one until completion.
+ * When maxHeaders is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, request options (timeout, retries, userAgent, rateLimit) and maxHeaders.
@@ -398,6 +399,7 @@ export async function* oaiListIdentifiersAsyncIterator(
   let emitted = 0;
   let resumptionToken: string | undefined;
   const { maxHeaders, from, until, set, ...requestOptions } = listOptions ?? {};
+  const maxEmitted = maxHeaders ?? Number.POSITIVE_INFINITY;
 
   do {
     const pageOptions: OaiListOptions = resumptionToken
@@ -409,7 +411,7 @@ export async function* oaiListIdentifiersAsyncIterator(
     if (headers.length === 0) break;
 
     for (const header of headers) {
-      if (maxHeaders != null && emitted >= maxHeaders) return;
+      if (emitted >= maxEmitted) return;
       yield header;
       emitted += 1;
     }
@@ -421,8 +423,8 @@ export async function* oaiListIdentifiersAsyncIterator(
 /**
  * Iterate sets available for selective harvesting across all pages.
  *
- * This helper follows resumption tokens internally and yields sets one-by-one until completion or
- * until the optional maxSets cap is reached.
+ * This helper follows resumption tokens internally and yields sets one-by-one until completion.
+ * When maxSets is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param options - Optional request configuration (timeout, retries, userAgent, rateLimit) and maxSets.
  * @returns Async iterator yielding sets one-by-one.
@@ -433,6 +435,7 @@ export async function* oaiListSetsAsyncIterator(
   let emitted = 0;
   let resumptionToken: string | undefined;
   const { maxSets, ...requestOptions } = options ?? {};
+  const maxEmitted = maxSets ?? Number.POSITIVE_INFINITY;
 
   do {
     const page = await oaiListSets(resumptionToken, requestOptions);
@@ -440,7 +443,7 @@ export async function* oaiListSetsAsyncIterator(
     if (sets.length === 0) break;
 
     for (const set of sets) {
-      if (maxSets != null && emitted >= maxSets) return;
+      if (emitted >= maxEmitted) return;
       yield set;
       emitted += 1;
     }
@@ -452,7 +455,8 @@ export async function* oaiListSetsAsyncIterator(
 /**
  * Fetch all records across all pages for a given metadataPrefix and optional selective harvesting options.
  *
- * This helper collects from oaiListRecordsAsyncIterator until completion or the optional maxRecords cap.
+ * This helper collects from oaiListRecordsAsyncIterator until completion.
+ * When maxRecords is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, request options (timeout, retries, userAgent, rateLimit) and maxRecords.
@@ -474,7 +478,8 @@ export async function oaiListRecordsAll(
 /**
  * Fetch all identifiers (headers only) across all pages for a given metadataPrefix and optional selective harvesting options.
  *
- * This helper collects from oaiListIdentifiersAsyncIterator until completion or the optional maxHeaders cap.
+ * This helper collects from oaiListIdentifiersAsyncIterator until completion.
+ * When maxHeaders is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, request options (timeout, retries, userAgent, rateLimit) and maxHeaders.
@@ -496,7 +501,8 @@ export async function oaiListIdentifiersAll(
 /**
  * Fetch all sets available for selective harvesting across all pages.
  *
- * This helper collects from oaiListSetsAsyncIterator until completion or the optional maxSets cap.
+ * This helper collects from oaiListSetsAsyncIterator until completion.
+ * When maxSets is provided, it acts as an upper cap; when omitted, no upper cap is applied.
  *
  * @param options - Optional request configuration (timeout, retries, userAgent, rateLimit) and maxSets.
  * @returns All fetched sets as a single array.

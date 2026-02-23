@@ -92,6 +92,8 @@ for await (const rec of oaiListRecordsAsyncIterator('oai_dc', {
 }
 ```
 
+If you omit `maxRecords` (or `maxHeaders` / `maxSets` on the corresponding iterators), iteration continues until the API is exhausted.
+
 The `oaiListRecordsAll` / `oaiListIdentifiersAll` / `oaiListSetsAll` helpers are convenience wrappers that collect from the corresponding async iterators.
 
 All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). OAI errors (e.g. `idDoesNotExist`, `noRecordsMatch`) are thrown as `OaiError` with a `code` and `messageText`.
