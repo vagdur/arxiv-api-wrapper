@@ -294,3 +294,58 @@ describe('resumptionToken validation', () => {
     });
   });
 });
+
+describe('from date validation', () => {
+  it('throws a local OaiError when from is earlier than arXiv minimum date', async () => {
+    await expect(
+      oaiListRecords('oai_dc', { from: '2005-09-15' })
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
+    await expect(oaiListRecords('oai_dc', { from: '2005-09-15' })).rejects.toThrow(
+      "earlier than arXiv's earliest supported OAI datestamp (2005-09-16)"
+    );
+  });
+
+  it('throws for earlier datetime form and allows earliest date', async () => {
+    await expect(
+      oaiListIdentifiers('oai_dc', { from: '2005-09-15T23:59:59Z' })
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
+    const url = buildOaiUrl('ListIdentifiers', { metadataPrefix: 'oai_dc', from: '2005-09-16' });
+    expect(url).toContain('from=2005-09-16');
+  });
+});
+
+describe('until date validation', () => {
+  it('throws a local OaiError when until is in the future', async () => {
+    const tomorrowUtc = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    await expect(
+      oaiListRecords('oai_dc', { until: tomorrowUtc })
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
+    await expect(oaiListRecords('oai_dc', { until: tomorrowUtc })).rejects.toThrow(
+      "later than today's UTC date"
+    );
+  });
+
+  it('throws for future datetime form and allows today', async () => {
+    const tomorrowUtc = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const todayUtc = new Date().toISOString().slice(0, 10);
+
+    await expect(
+      oaiListIdentifiers('oai_dc', { until: `${tomorrowUtc}T00:00:00Z` })
+    ).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badArgument',
+    });
+    const url = buildOaiUrl('ListIdentifiers', { metadataPrefix: 'oai_dc', until: todayUtc });
+    expect(url).toContain(`until=${todayUtc}`);
+  });
+});

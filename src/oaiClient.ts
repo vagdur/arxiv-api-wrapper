@@ -33,6 +33,7 @@ import type {
 } from './oaiTypes.js';
 
 const OAI_BASE_URL = 'https://oaipmh.arxiv.org/oai';
+const OAI_EARLIEST_DATE = '2005-09-16';
 
 const DEFAULT_USER_AGENT = 'arxiv-api-wrapper/1.0 (+https://export.arxiv.org)';
 
@@ -53,7 +54,7 @@ interface OaiParams {
   resumptionToken?: string;
 }
 
-function hasValue(value: string | undefined): boolean {
+function hasValue(value: string | undefined): value is string {
   return value != null && value !== '';
 }
 
@@ -79,6 +80,40 @@ function throwResumptionTokenExclusiveError(context: 'request params' | 'list op
     `Invalid ${context}: resumptionToken must be used by itself (aside from verb). ` +
       'Do not include from/until/set/metadataPrefix when resuming pagination.'
   );
+}
+
+function parseDatePrefix(dateValue: string): string | undefined {
+  const trimmed = dateValue.trim();
+  if (!trimmed) return undefined;
+  const match = /^(\d{4}-\d{2}-\d{2})(?:$|T\d{2}:\d{2}:\d{2}Z$)/.exec(trimmed);
+  return match?.[1];
+}
+
+function validateFromDateNotTooEarly(from: string | undefined): void {
+  if (!hasValue(from)) return;
+  const normalizedDate = parseDatePrefix(from);
+  if (!normalizedDate) return;
+  if (normalizedDate < OAI_EARLIEST_DATE) {
+    throw new OaiError(
+      'badArgument',
+      `Invalid list options: from=${from} is earlier than arXiv's earliest supported OAI datestamp ` +
+        `(${OAI_EARLIEST_DATE}). Use from >= ${OAI_EARLIEST_DATE} or omit from.`
+    );
+  }
+}
+
+function validateUntilDateNotTooLate(until: string | undefined): void {
+  if (!hasValue(until)) return;
+  const normalizedDate = parseDatePrefix(until);
+  if (!normalizedDate) return;
+  const todayUtc = new Date().toISOString().slice(0, 10);
+  if (normalizedDate > todayUtc) {
+    throw new OaiError(
+      'badArgument',
+      `Invalid list options: until=${until} is later than today's UTC date (${todayUtc}). ` +
+        'Use until <= today (UTC) or omit until.'
+    );
+  }
 }
 
 /** Build OAI-PMH request URL (exported for unit tests). */
@@ -241,6 +276,8 @@ export async function oaiListIdentifiers(
   const from = listOptions?.from;
   const until = listOptions?.until;
   const set = listOptions?.set;
+  validateFromDateNotTooEarly(from);
+  validateUntilDateNotTooLate(until);
   const params: OaiParams = {};
   if (hasValue(resumptionToken)) {
     params.resumptionToken = resumptionToken;
@@ -272,6 +309,8 @@ export async function oaiListRecords(
   const from = listOptions?.from;
   const until = listOptions?.until;
   const set = listOptions?.set;
+  validateFromDateNotTooEarly(from);
+  validateUntilDateNotTooLate(until);
   const params: OaiParams = {};
   if (hasValue(resumptionToken)) {
     params.resumptionToken = resumptionToken;
