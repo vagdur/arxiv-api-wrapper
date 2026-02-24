@@ -2,7 +2,7 @@
  * Integration tests for the arXiv OAI-PMH interface (real HTTP calls).
  * Conservative request size and rate; same pattern as arxivAPI.integration.test.ts.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   oaiIdentify,
   oaiListRecords,
@@ -21,6 +21,10 @@ const OAI_OPTIONS = {
   rateLimit: { tokensPerInterval: 1, intervalMs: 1000 },
   userAgent: 'arxiv-api-wrapper-tests/1.0',
 };
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('OAI-PMH integration', () => {
   it('oaiIdentify returns repository info and protocol version 2.0', async () => {
@@ -244,4 +248,36 @@ describe('OAI-PMH integration', () => {
       expect(sets[0].setName).toBeTruthy();
     }
   }, 30000);
+
+  it('oaiListRecordsAsyncIterator rejects expired continuation token before another request', async () => {
+    const firstPageXml = `<?xml version="1.0" encoding="UTF-8"?>
+<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">
+  <responseDate>2024-01-15T12:00:00Z</responseDate>
+  <request verb="ListRecords" metadataPrefix="oai_dc">https://oaipmh.arxiv.org/oai</request>
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/integration-1</identifier>
+        <datestamp>2024-01-01</datestamp>
+      </header>
+      <metadata><dc><dc:title>Integration Page 1</dc:title></dc></metadata>
+    </record>
+    <resumptionToken expirationDate="2000-01-01T00:00:00Z">expired-integration-token</resumptionToken>
+  </ListRecords>
+</OAI-PMH>`;
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(firstPageXml, { status: 200 }));
+
+    const iterator = oaiListRecordsAsyncIterator('oai_dc', { retries: 0, timeoutMs: 1000 });
+    const first = await iterator.next();
+    expect(first.done).toBe(false);
+
+    await expect(iterator.next()).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badResumptionToken',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });

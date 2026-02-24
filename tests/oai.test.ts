@@ -2,12 +2,13 @@
  * Unit tests for OAI-PMH URL builder and XML parser (no network).
  * Pagination helpers (oaiListRecordsAll, etc.) are covered by integration tests.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   buildOaiUrl,
   normalizeOaiIdentifier,
   oaiListIdentifiers,
   oaiListRecords,
+  oaiListRecordsAsyncIterator,
 } from '../src/oaiClient.js';
 import {
   parseIdentify,
@@ -21,6 +22,10 @@ import {
 import { OaiError } from '../src/oaiTypes.js';
 
 const OAI_BASE = 'https://oaipmh.arxiv.org/oai';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('buildOaiUrl', () => {
   it('includes verb only for Identify', () => {
@@ -347,5 +352,124 @@ describe('until date validation', () => {
     });
     const url = buildOaiUrl('ListIdentifiers', { metadataPrefix: 'oai_dc', until: todayUtc });
     expect(url).toContain(`until=${todayUtc}`);
+  });
+});
+
+describe('resumptionToken expiration handling in iterators', () => {
+  it('fails fast locally when continuation token is already expired', async () => {
+    const firstPageXml = wrapOaiRoot(`
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/0001</identifier>
+        <datestamp>2024-01-01</datestamp>
+      </header>
+      <metadata><dc><dc:title>Page 1</dc:title></dc></metadata>
+    </record>
+    <resumptionToken expirationDate="2000-01-01T00:00:00Z">expired-token</resumptionToken>
+  </ListRecords>`).replace(
+      '<request verb="Identify">',
+      '<request verb="ListRecords" metadataPrefix="oai_dc">'
+    );
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(firstPageXml, { status: 200 }));
+
+    const iterator = oaiListRecordsAsyncIterator('oai_dc', { retries: 0, timeoutMs: 1000 });
+    const first = await iterator.next();
+    expect(first.done).toBe(false);
+
+    await expect(iterator.next()).rejects.toMatchObject({
+      name: 'OaiError',
+      code: 'badResumptionToken',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('continues when continuation token expirationDate is in the future', async () => {
+    const firstPageXml = wrapOaiRoot(`
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/0002</identifier>
+        <datestamp>2024-01-01</datestamp>
+      </header>
+      <metadata><dc><dc:title>Page 1</dc:title></dc></metadata>
+    </record>
+    <resumptionToken expirationDate="2999-01-01T00:00:00Z">live-token</resumptionToken>
+  </ListRecords>`).replace(
+      '<request verb="Identify">',
+      '<request verb="ListRecords" metadataPrefix="oai_dc">'
+    );
+    const secondPageXml = wrapOaiRoot(`
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/0003</identifier>
+        <datestamp>2024-01-02</datestamp>
+      </header>
+      <metadata><dc><dc:title>Page 2</dc:title></dc></metadata>
+    </record>
+  </ListRecords>`).replace(
+      '<request verb="Identify">',
+      '<request verb="ListRecords" metadataPrefix="oai_dc">'
+    );
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(firstPageXml, { status: 200 }))
+      .mockResolvedValueOnce(new Response(secondPageXml, { status: 200 }));
+
+    const records = [];
+    for await (const record of oaiListRecordsAsyncIterator('oai_dc', { retries: 0, timeoutMs: 1000 })) {
+      records.push(record);
+    }
+
+    expect(records).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves previous behavior when expirationDate is omitted', async () => {
+    const firstPageXml = wrapOaiRoot(`
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/0004</identifier>
+        <datestamp>2024-01-01</datestamp>
+      </header>
+      <metadata><dc><dc:title>Page 1</dc:title></dc></metadata>
+    </record>
+    <resumptionToken cursor="1">token-no-expiry</resumptionToken>
+  </ListRecords>`).replace(
+      '<request verb="Identify">',
+      '<request verb="ListRecords" metadataPrefix="oai_dc">'
+    );
+    const secondPageXml = wrapOaiRoot(`
+  <ListRecords>
+    <record>
+      <header>
+        <identifier>oai:arXiv.org:test/0005</identifier>
+        <datestamp>2024-01-02</datestamp>
+      </header>
+      <metadata><dc><dc:title>Page 2</dc:title></dc></metadata>
+    </record>
+  </ListRecords>`).replace(
+      '<request verb="Identify">',
+      '<request verb="ListRecords" metadataPrefix="oai_dc">'
+    );
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(firstPageXml, { status: 200 }))
+      .mockResolvedValueOnce(new Response(secondPageXml, { status: 200 }));
+
+    const records = [];
+    for await (const record of oaiListRecordsAsyncIterator('oai_dc', { retries: 0, timeoutMs: 1000 })) {
+      records.push(record);
+    }
+
+    expect(records).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

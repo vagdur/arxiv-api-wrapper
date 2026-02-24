@@ -27,6 +27,7 @@ import type {
   OaiIdentifyResponse,
   OaiMetadataFormat,
   OaiMetadataPrefix,
+  OaiResumptionToken,
   OaiRecord,
   OaiHeader,
   OaiSet,
@@ -112,6 +113,19 @@ function validateUntilDateNotTooLate(until: string | undefined): void {
       'badArgument',
       `Invalid list options: until=${until} is later than today's UTC date (${todayUtc}). ` +
         'Use until <= today (UTC) or omit until.'
+    );
+  }
+}
+
+function validateResumptionTokenNotExpired(resumptionToken: OaiResumptionToken | undefined): void {
+  const expirationDate = resumptionToken?.expirationDate;
+  if (!expirationDate) return;
+  const expiresAtMs = Date.parse(expirationDate);
+  if (Number.isNaN(expiresAtMs)) return;
+  if (Date.now() >= expiresAtMs) {
+    throw new OaiError(
+      'badResumptionToken',
+      `Resumption token expired at ${expirationDate}. Start a new list request without resumptionToken.`
     );
   }
 }
@@ -358,13 +372,14 @@ export async function* oaiListRecordsAsyncIterator(
   listOptions?: OaiListRecordsAllOptions
 ): AsyncGenerator<OaiRecord, void, void> {
   let emitted = 0;
-  let resumptionToken: string | undefined;
+  let resumptionToken: OaiResumptionToken | undefined;
   const { maxRecords, from, until, set, ...requestOptions } = listOptions ?? {};
   const maxEmitted = maxRecords ?? Number.POSITIVE_INFINITY;
 
   do {
-    const pageOptions: OaiListOptions = resumptionToken
-      ? { ...requestOptions, resumptionToken }
+    validateResumptionTokenNotExpired(resumptionToken);
+    const pageOptions: OaiListOptions = resumptionToken?.value
+      ? { ...requestOptions, resumptionToken: resumptionToken.value }
       : { ...requestOptions, ...(from ? { from } : {}), ...(until ? { until } : {}), ...(set ? { set } : {}) };
 
     const page = await oaiListRecords(metadataPrefix, pageOptions);
@@ -377,8 +392,8 @@ export async function* oaiListRecordsAsyncIterator(
       emitted += 1;
     }
 
-    resumptionToken = page.resumptionToken?.value;
-  } while (resumptionToken);
+    resumptionToken = page.resumptionToken;
+  } while (resumptionToken?.value);
 }
 
 /**
@@ -397,13 +412,14 @@ export async function* oaiListIdentifiersAsyncIterator(
   listOptions?: OaiListIdentifiersAllOptions
 ): AsyncGenerator<OaiHeader, void, void> {
   let emitted = 0;
-  let resumptionToken: string | undefined;
+  let resumptionToken: OaiResumptionToken | undefined;
   const { maxHeaders, from, until, set, ...requestOptions } = listOptions ?? {};
   const maxEmitted = maxHeaders ?? Number.POSITIVE_INFINITY;
 
   do {
-    const pageOptions: OaiListOptions = resumptionToken
-      ? { ...requestOptions, resumptionToken }
+    validateResumptionTokenNotExpired(resumptionToken);
+    const pageOptions: OaiListOptions = resumptionToken?.value
+      ? { ...requestOptions, resumptionToken: resumptionToken.value }
       : { ...requestOptions, ...(from ? { from } : {}), ...(until ? { until } : {}), ...(set ? { set } : {}) };
 
     const page = await oaiListIdentifiers(metadataPrefix, pageOptions);
@@ -416,8 +432,8 @@ export async function* oaiListIdentifiersAsyncIterator(
       emitted += 1;
     }
 
-    resumptionToken = page.resumptionToken?.value;
-  } while (resumptionToken);
+    resumptionToken = page.resumptionToken;
+  } while (resumptionToken?.value);
 }
 
 /**
@@ -433,12 +449,13 @@ export async function* oaiListSetsAsyncIterator(
   options?: OaiListSetsAllOptions
 ): AsyncGenerator<OaiSet, void, void> {
   let emitted = 0;
-  let resumptionToken: string | undefined;
+  let resumptionToken: OaiResumptionToken | undefined;
   const { maxSets, ...requestOptions } = options ?? {};
   const maxEmitted = maxSets ?? Number.POSITIVE_INFINITY;
 
   do {
-    const page = await oaiListSets(resumptionToken, requestOptions);
+    validateResumptionTokenNotExpired(resumptionToken);
+    const page = await oaiListSets(resumptionToken?.value, requestOptions);
     const sets = page.sets ?? [];
     if (sets.length === 0) break;
 
@@ -448,8 +465,8 @@ export async function* oaiListSetsAsyncIterator(
       emitted += 1;
     }
 
-    resumptionToken = page.resumptionToken?.value;
-  } while (resumptionToken);
+    resumptionToken = page.resumptionToken;
+  } while (resumptionToken?.value);
 }
 
 /**

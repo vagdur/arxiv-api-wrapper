@@ -96,6 +96,8 @@ If you omit `maxRecords` (or `maxHeaders` / `maxSets` on the corresponding itera
 
 The `oaiListRecordsAll` / `oaiListIdentifiersAll` / `oaiListSetsAll` helpers are convenience wrappers that collect from the corresponding async iterators.
 
+Async iterators keep continuation token metadata in memory while paging. If a token includes an `expirationDate` and that time has passed, iterators fail fast locally with `OaiError` (`code: 'badResumptionToken'`) before attempting another request.
+
 All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). OAI errors (e.g. `idDoesNotExist`, `noRecordsMatch`) are thrown as `OaiError` with a `code` and `messageText`.
 
 ## API Reference
