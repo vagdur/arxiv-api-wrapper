@@ -275,6 +275,9 @@ export async function oaiGetRecord(
 /**
  * List identifiers (headers only) for selective harvesting (ListIdentifiers verb).
  *
+ * When the repository responds with `noRecordsMatch` (no identifiers match the from/until/set criteria),
+ * this wrapper returns an empty list instead of throwing, unlike the raw OAI-PMH API.
+ *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, resumptionToken and request options (timeout, retries, userAgent, rateLimit).
  * @returns Headers and optional resumptionToken for the next page.
@@ -301,12 +304,22 @@ export async function oaiListIdentifiers(
     if (hasValue(until)) params.until = until;
     if (hasValue(set)) params.set = set;
   }
-  const xml = await oaiRequest('ListIdentifiers', params, listOptions);
-  return parseListIdentifiers(xml);
+  try {
+    const xml = await oaiRequest('ListIdentifiers', params, listOptions);
+    return parseListIdentifiers(xml);
+  } catch (e) {
+    if (e instanceof OaiError && e.code === 'noRecordsMatch') {
+      return { headers: [] };
+    }
+    throw e;
+  }
 }
 
 /**
  * List records (full metadata) for selective harvesting (ListRecords verb).
+ *
+ * When the repository responds with `noRecordsMatch` (no records match the from/until/set criteria),
+ * this wrapper returns an empty list instead of throwing, unlike the raw OAI-PMH API.
  *
  * @param metadataPrefix - Required metadata format (e.g. oai_dc, arXiv, arXivRaw).
  * @param listOptions - Optional from, until, set, resumptionToken and request options (timeout, retries, userAgent, rateLimit).
@@ -334,8 +347,15 @@ export async function oaiListRecords(
     if (hasValue(until)) params.until = until;
     if (hasValue(set)) params.set = set;
   }
-  const xml = await oaiRequest('ListRecords', params, listOptions);
-  return parseListRecords(xml);
+  try {
+    const xml = await oaiRequest('ListRecords', params, listOptions);
+    return parseListRecords(xml);
+  } catch (e) {
+    if (e instanceof OaiError && e.code === 'noRecordsMatch') {
+      return { records: [] };
+    }
+    throw e;
+  }
 }
 
 type OaiListRecordsAllOptions = OaiRequestOptions & {

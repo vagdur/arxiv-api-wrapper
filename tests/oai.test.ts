@@ -267,6 +267,38 @@ describe('OAI error handling', () => {
   });
 });
 
+describe('noRecordsMatch returns empty list (wrapper behaviour)', () => {
+  it('oaiListRecords returns { records: [] } when server responds noRecordsMatch', async () => {
+    const noRecordsMatchXml = wrapOaiRoot(`<error code="noRecordsMatch"/>`);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(noRecordsMatchXml, { status: 200 })
+    );
+
+    const result = await oaiListRecords('oai_dc', {
+      from: '2006-01-01',
+      until: '2006-01-02',
+    });
+
+    expect(result).toEqual({ records: [] });
+    expect(result.records).toHaveLength(0);
+  });
+
+  it('oaiListIdentifiers returns { headers: [] } when server responds noRecordsMatch', async () => {
+    const noRecordsMatchXml = wrapOaiRoot(`<error code="noRecordsMatch"/>`);
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(noRecordsMatchXml, { status: 200 })
+    );
+
+    const result = await oaiListIdentifiers('oai_dc', {
+      from: '2006-01-01',
+      until: '2006-01-02',
+    });
+
+    expect(result).toEqual({ headers: [] });
+    expect(result.headers).toHaveLength(0);
+  });
+});
+
 describe('resumptionToken validation', () => {
   it('throws a local OaiError when resumptionToken is combined with from in oaiListRecords', async () => {
     const invalidOptions = {

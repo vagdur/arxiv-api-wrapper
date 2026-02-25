@@ -98,7 +98,9 @@ The `oaiListRecordsAll` / `oaiListIdentifiersAll` / `oaiListSetsAll` helpers are
 
 Async iterators keep continuation token metadata in memory while paging. If a token includes an `expirationDate` and that time has passed, iterators fail fast locally with `OaiError` (`code: 'badResumptionToken'`) before attempting another request.
 
-All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). OAI errors (e.g. `idDoesNotExist`, `noRecordsMatch`) are thrown as `OaiError` with a `code` and `messageText`.
+All OAI functions accept optional `timeoutMs`, `retries`, `userAgent`, and `rateLimit` (same as the Atom API). Other OAI errors (e.g. `idDoesNotExist`) are thrown as `OaiError` with a `code` and `messageText`. **`noRecordsMatch`** is treated as “no results”: the wrapper returns an empty list (empty `records` or `headers`) instead of throwing, so you always get a normal result shape from `oaiListRecords` and `oaiListIdentifiers`.
+
+**Differences from OAI-PMH:** The underlying arXiv OAI server returns an error response when a list request matches no records. This wrapper normalises that to an empty list so callers can assume a consistent result type without handling `noRecordsMatch` as an exception.
 
 ## API Reference
 

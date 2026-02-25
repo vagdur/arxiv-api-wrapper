@@ -97,6 +97,17 @@ describe('OAI-PMH integration', () => {
     ).rejects.toBeInstanceOf(OaiError);
   });
 
+  it('oaiListRecords returns empty records (no throw) when no records match (noRecordsMatch)', async () => {
+    const result = await oaiListRecords('oai_dc', {
+      ...OAI_OPTIONS,
+      from: '2006-01-01',
+      until: '2006-01-02',
+      set: 'math:math:LO',
+    });
+    expect(result).toEqual({ records: [] });
+    expect(result.records).toHaveLength(0);
+  }, 30000);
+
   it('oaiListRecordsAll returns records across all pages within a small date range', async () => {
     let result;
     try {
