@@ -22,6 +22,9 @@ const parser = new XMLParser({
   removeNSPrefix: true,
   trimValues: true,
   parseTagValue: false,
+  processEntities: {
+    maxTotalExpansions: 0, // 0 disables the limit; arXiv OAI is a trusted source
+  },
 });
 
 const VALID_ERROR_CODES: OaiErrorCode[] = [
