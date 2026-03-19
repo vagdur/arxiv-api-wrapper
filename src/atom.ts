@@ -23,7 +23,12 @@ function normalizeWhitespace(str: string): string {
 }
 
 export function parseFeedMeta(xml: string): ArxivFeedMeta {
-  const doc = parser.parse(xml) as any;
+  let doc: any;
+  try {
+    doc = parser.parse(xml) as any;
+  } catch (error) {
+    throw new Error('Failed to parse Atom feed XML: ' + (error as Error).message);
+  }
   const feed = doc.feed || {};
 
   const title: string = feed.title ?? '';
@@ -46,7 +51,12 @@ export function parseFeedMeta(xml: string): ArxivFeedMeta {
 }
 
 export function parseEntries(xml: string): ArxivEntry[] {
-  const doc = parser.parse(xml) as any;
+  let doc: any;
+  try {
+    doc = parser.parse(xml) as any;
+  } catch (error) {
+    throw new Error('Failed to parse Atom feed XML: ' + (error as Error).message);
+  }
   const feed = doc.feed || {};
   const rawEntries = Array.isArray(feed.entry) ? feed.entry : (feed.entry ? [feed.entry] : []);
 

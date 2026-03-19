@@ -121,7 +121,13 @@ function parseRecord(el: unknown): OaiRecord {
 }
 
 function getRoot(xml: string): Record<string, unknown> {
-  const doc = parser.parse(xml) as Record<string, unknown>;
+  let doc: Record<string, unknown>;
+  try {
+    doc = parser.parse(xml) as Record<string, unknown>;
+  } catch (error) {
+    throw new OaiError('badArgument', 'Failed to parse OAI-PMH response XML: ' + (error as Error).message);
+  }
+  
   const root = doc['OAI-PMH'] ?? doc['OAIPMH'] ?? doc;
   if (root == null || typeof root !== 'object') {
     throw new OaiError('badArgument', 'Invalid OAI-PMH response: no root element');
