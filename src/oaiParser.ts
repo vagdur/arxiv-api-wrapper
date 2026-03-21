@@ -16,6 +16,8 @@ import {
 } from './oaiTypes.js';
 import { XMLParser } from 'fast-xml-parser';
 
+// ListRecords pages can hold ~1500 records; each text node can contribute several entity
+// expansions, so the library default (1000) is too low. Keep a high finite cap (trusted HTTPS).
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '',
@@ -23,7 +25,7 @@ const parser = new XMLParser({
   trimValues: true,
   parseTagValue: false,
   processEntities: {
-    maxTotalExpansions: 0, // 0 disables the limit; arXiv OAI is a trusted source
+    maxTotalExpansions: 10_000,
   },
 });
 
