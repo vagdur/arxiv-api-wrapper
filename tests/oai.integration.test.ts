@@ -22,6 +22,10 @@ const OAI_OPTIONS = {
   userAgent: 'arxiv-api-wrapper-tests/1.0',
 };
 
+/** arXiv OAI earliest datestamp day; dense enough for a max-sized ListRecords page + resumption. */
+const HARVEST_FIRST_DAY_FROM = '2005-09-16';
+const HARVEST_FIRST_DAY_UNTIL = '2005-09-17';
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -72,6 +76,40 @@ describe('OAI-PMH integration', () => {
       expect(result.resumptionToken.value).toBeTruthy();
     }
   }, 30000);
+
+  it(
+    'oaiListRecords parses a full first page and paginates for 2005-09-16 .. 2005-09-17',
+    async () => {
+      // arXiv OAI returns up to 1500 records per page when the list continues (resumptionToken set).
+      const largePageOptions = {
+        ...OAI_OPTIONS,
+        timeoutMs: 120000,
+        from: HARVEST_FIRST_DAY_FROM,
+        until: HARVEST_FIRST_DAY_UNTIL,
+      };
+
+      const firstPage = await oaiListRecords('oai_dc', largePageOptions);
+      expect(firstPage.records).toHaveLength(1500);
+      expect(firstPage.resumptionToken?.value).toBeTruthy();
+
+      const assertRecordShape = (rec: (typeof firstPage.records)[0]) => {
+        expect(rec.header.identifier).toBeTruthy();
+        expect(rec.header.datestamp).toBeTruthy();
+        expect(rec.metadata).toBeDefined();
+        expect(typeof rec.metadata).toBe('object');
+      };
+      assertRecordShape(firstPage.records[0]);
+      assertRecordShape(firstPage.records[firstPage.records.length - 1]);
+
+      const secondPage = await oaiListRecords('oai_dc', {
+        ...OAI_OPTIONS,
+        timeoutMs: 120000,
+        resumptionToken: firstPage.resumptionToken!.value,
+      });
+      expect(secondPage.records.length).toBeGreaterThan(0);
+    },
+    120000
+  );
 
   it('oaiListRecords continuation requests work with resumptionToken-only options', async () => {
     const firstPage = await oaiListRecords('oai_dc', OAI_OPTIONS);
